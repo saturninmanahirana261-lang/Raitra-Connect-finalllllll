@@ -1,0 +1,104 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSuperAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'saturninmanahirana261@gmail.com' ||
+        request.auth.token.admin == true
+      );
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // User profile avatars - only the owner or superadmin can upload/update/delete avatar (max 5MB, image only)
+    match /avatars/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin())
+                   && request.resource.size <= 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+    }
+    
+    // Channel and direct chat attachments (documents, images, archives, up to 25MB)
+    match /attachments/{channelId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.resource.size <= 25 * 1024 * 1024;
+      allow delete: if isAuthenticated() && (
+        isSuperAdmin() ||
+        fileName.matches('.*' + request.auth.uid + '.*') ||
+        channelId.matches('.*' + request.auth.uid + '.*')
+      );
+    }
+
+    // Voice memo audio notes (audio format, up to 10MB)
+    match /audio_notes/{channelId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() 
+                   && request.resource.size <= 10 * 1024 * 1024
+                   && (
+                     request.resource.contentType.matches('audio/.*') ||
+                     request.resource.contentType.matches('video/webm') ||
+                     request.resource.contentType.matches('video/mp4') ||
+                     request.resource.contentType.matches('application/octet-stream')
+                   );
+      allow delete: if isAuthenticated() && (
+        isSuperAdmin() ||
+        fileName.matches('.*' + request.auth.uid + '.*') ||
+        channelId.matches('.*' + request.auth.uid + '.*')
+      );
+    }
+
+    match /voiceMessages/{channelId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() 
+                   && request.resource.size <= 10 * 1024 * 1024
+                   && (
+                     request.resource.contentType.matches('audio/.*') ||
+                     request.resource.contentType.matches('video/webm') ||
+                     request.resource.contentType.matches('video/mp4') ||
+                     request.resource.contentType.matches('application/octet-stream')
+                   );
+      allow delete: if isAuthenticated() && (
+        isSuperAdmin() ||
+        fileName.matches('.*' + request.auth.uid + '.*') ||
+        channelId.matches('.*' + request.auth.uid + '.*')
+      );
+    }
+
+    // Médias des publications sociales (max 20 Mo, images ou vidéos)
+    match /social_posts/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() 
+                   && (request.auth.uid == userId || isSuperAdmin())
+                   && request.resource.size <= 20 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'));
+      allow delete: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+    }
+
+    // Médias des stories sociales (max 15 Mo, images ou vidéos)
+    match /social_stories/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() 
+                   && (request.auth.uid == userId || isSuperAdmin())
+                   && request.resource.size <= 15 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'));
+      allow delete: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+    }
+
+    // Médias des Pages Raitra Connect (max 10 Mo, images)
+    match /social_pages/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() 
+                   && request.resource.size <= 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+    }
+
+    // Default deny for all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

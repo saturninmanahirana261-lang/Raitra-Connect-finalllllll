@@ -1,0 +1,209 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".validate": "newData.hasChildren(['uid', 'displayName']) && (!newData.hasChild('role') || newData.child('role').val() !== 'admin' || auth.token.email === 'saturninmanahirana261@gmail.com' || (data.exists() && data.child('role').val() === 'admin'))"
+      }
+    },
+    "friendships": {
+      "$friendshipId": {
+        ".read": "auth != null && (data.child('senderId').val() === auth.uid || data.child('receiverId').val() === auth.uid || data.child('user1Id').val() === auth.uid || data.child('user2Id').val() === auth.uid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".write": "auth != null && (
+          (!data.exists() && newData.child('senderId').val() === auth.uid && newData.child('status').val() === 'pending') ||
+          (data.exists() && !newData.exists() && (data.child('senderId').val() === auth.uid || data.child('receiverId').val() === auth.uid || data.child('user1Id').val() === auth.uid || data.child('user2Id').val() === auth.uid || auth.token.email === 'saturninmanahirana261@gmail.com')) ||
+          (data.exists() && newData.exists() && data.child('receiverId').val() === auth.uid && (newData.child('status').val() === 'accepted' || newData.child('status').val() === 'declined')) ||
+          (data.exists() && (data.child('user1Id').val() === auth.uid || data.child('user2Id').val() === auth.uid)) ||
+          (auth.token.email === 'saturninmanahirana261@gmail.com')
+        )"
+      }
+    },
+    "notifications": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".write": "auth != null"
+      }
+    },
+    "presence": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "typing": {
+      "$chatId": {
+        ".read": "auth != null && ($chatId === 'general' || $chatId.contains(auth.uid) || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+    "messages": {
+      "$conversationId": {
+        ".read": "auth != null && ($conversationId === 'general' || $conversationId.contains(auth.uid) || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        "$messageId": {
+          ".write": "auth != null && ($conversationId === 'general' || $conversationId.contains(auth.uid) || auth.token.email === 'saturninmanahirana261@gmail.com') && (!data.exists() || data.child('uid').val() === auth.uid || data.child('senderUid').val() === auth.uid || newData.child('reactions').exists() || newData.child('poll').exists() || newData.child('deletedFor').exists() || newData.child('readBy').exists() || auth.token.email === 'saturninmanahirana261@gmail.com')"
+        }
+      }
+    },
+    "chats": {
+      "$channelId": {
+        "messages": {
+          ".read": "auth != null",
+          "$messageId": {
+            ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || data.child('senderUid').val() === auth.uid || newData.child('reactions').exists() || newData.child('poll').exists() || auth.token.email === 'saturninmanahirana261@gmail.com')"
+          }
+        }
+      }
+    },
+    "direct_messages": {
+      "$conversationId": {
+        ".read": "auth != null && ($conversationId.contains(auth.uid) || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".write": "auth != null && ($conversationId.contains(auth.uid) || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "teams": {
+      ".read": "auth != null",
+      "$teamId": {
+        ".write": "auth != null && (!data.exists() || data.child('ownerId').val() === auth.uid || data.child('createdBy').val() === auth.uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "teams_posts": {
+      ".read": "auth != null",
+      "$postId": {
+        ".write": "auth != null && (!data.exists() || data.child('authorUid').val() === auth.uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "calls": {
+      "$callId": {
+        ".read": "auth != null && (data.child('callerUid').val() === auth.uid || data.child('calleeUid').val() === auth.uid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".write": "auth != null && (!data.exists() || data.child('callerUid').val() === auth.uid || data.child('calleeUid').val() === auth.uid || newData.child('callerUid').val() === auth.uid || newData.child('calleeUid').val() === auth.uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "userActiveCall": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".write": "auth != null && (auth.uid === $uid || newData.child('callerUid').val() === auth.uid || (data.exists() && data.child('callerUid').val() === auth.uid) || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "callHistory": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "shared_files": {
+      ".read": "auth != null",
+      "$fileId": {
+        ".write": "auth != null && (!data.exists() || data.child('authorUid').val() === auth.uid || data.child('uploaderUid').val() === auth.uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "meetings": {
+      ".read": "auth != null",
+      "$meetingId": {
+        ".write": "auth != null && (!data.exists() || data.child('hostUid').val() === auth.uid || data.child('createdBy').val() === auth.uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "whiteboards": {
+      "$boardId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "blocks": {
+      "$blockId": {
+        ".read": "auth != null && (data.child('blockerId').val() === auth.uid || data.child('blockerUid').val() === auth.uid || data.child('blockedUserId').val() === auth.uid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".write": "auth != null && (
+          (!data.exists() && (newData.child('blockerUid').val() === auth.uid || newData.child('blockerId').val() === auth.uid)) ||
+          (data.exists() && (data.child('blockerUid').val() === auth.uid || data.child('blockerId').val() === auth.uid)) ||
+          (auth.token.email === 'saturninmanahirana261@gmail.com')
+        )"
+      }
+    },
+    "hiddenConversations": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "reports": {
+      ".read": "auth != null && (auth.token.email === 'saturninmanahirana261@gmail.com')",
+      "$reportId": {
+        ".read": "auth != null && (data.child('reporterUid').val() === auth.uid || data.child('reporterId').val() === auth.uid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".write": "auth != null && (
+          (!data.exists() && (newData.child('reporterId').val() === auth.uid || newData.child('reporterUid').val() === auth.uid)) ||
+          (auth.token.email === 'saturninmanahirana261@gmail.com')
+        )"
+      }
+    },
+    "social_posts": {
+      ".read": "auth != null",
+      "$postId": {
+        ".write": "auth != null && (!data.exists() || data.child('authorUid').val() === auth.uid || newData.child('reactionsCount').exists() || newData.child('commentsCount').exists() || newData.child('sharesCount').exists() || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "social_comments": {
+      ".read": "auth != null",
+      "$postId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!newData.exists() || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        "$commentId": {
+          ".write": "auth != null && (!data.exists() || data.child('authorUid').val() === auth.uid || root.child('social_posts').child($postId).child('authorUid').val() === auth.uid || newData.child('reactionsCount').exists() || newData.child('likes').exists() || auth.token.email === 'saturninmanahirana261@gmail.com')"
+        }
+      }
+    },
+    "social_post_reactions": {
+      ".read": "auth != null",
+      "$postId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!newData.exists() || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        "$uid": {
+          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+        }
+      }
+    },
+    "social_stories": {
+      ".read": "auth != null",
+      "$storyId": {
+        ".write": "auth != null && (!data.exists() || data.child('authorUid').val() === auth.uid || newData.child('viewers').exists() || newData.child('viewersDetails').exists() || newData.child('viewersCount').exists() || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "social_saved_posts": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "social_hidden_posts": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "social_pages": {
+      ".read": "auth != null",
+      "$pageId": {
+        ".write": "auth != null && (!data.exists() || data.child('ownerUid').val() === auth.uid || data.child('admins').val().contains(auth.uid) || newData.child('followersCount').exists() || auth.token.email === 'saturninmanahirana261@gmail.com')"
+      }
+    },
+    "social_page_followers": {
+      ".read": "auth != null",
+      "$pageId": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'saturninmanahirana261@gmail.com')"
+        }
+      }
+    },
+    "social_notifications": {
+      "$recipientUid": {
+        ".read": "auth != null && (auth.uid === $recipientUid || auth.token.email === 'saturninmanahirana261@gmail.com')",
+        "$notifId": {
+          ".write": "auth != null"
+        }
+      }
+    }
+  }
+}
+

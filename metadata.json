@@ -1,0 +1,6 @@
+{
+  "name": "Raitra Connect",
+  "description": "Plateforme complète de communication d'entreprise, réseau social communautaire, stories 24h, pages officielles, messagerie instantanée, canaux et appels audio/vidéo WebRTC.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

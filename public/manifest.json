@@ -1,0 +1,39 @@
+{
+  "name": "Raitra Connect - Collaboration & Enterprise Communication",
+  "short_name": "Raitra Connect",
+  "description": "Plateforme professionnelle de collaboration d'équipe, messagerie temps réel, canaux thématiques et visioconférence WebRTC.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#181818",
+  "theme_color": "#6264a7",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x48 72x72 96x96 128x128 256x256",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "productivity", "social"],
+  "shortcuts": [
+    {
+      "name": "Nouveau Message",
+      "short_name": "Chat",
+      "description": "Accéder directement aux messages et canaux",
+      "url": "/?view=chat"
+    },
+    {
+      "name": "Appels & Réunions",
+      "short_name": "Appels",
+      "description": "Démarrer un appel ou rejoindre une réunion",
+      "url": "/?view=calls"
+    }
+  ]
+}

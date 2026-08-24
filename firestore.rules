@@ -1,0 +1,270 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fonction d'authentification et de validation SuperAdmin robuste
+    function isSuperAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'saturninmanahirana261@gmail.com' ||
+        request.auth.token.admin == true
+      );
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Profils utilisateurs : lecture publique pour membres authentifiés, écriture sécurisée par le propriétaire
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // Interdiction stricte de s'auto-attribuer le rôle admin sans être SuperAdmin
+      allow create: if isAuthenticated() && request.auth.uid == userId && (
+        !('role' in request.resource.data) ||
+        request.resource.data.role == 'member' ||
+        isSuperAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        (request.auth.uid == userId && (
+          !('role' in request.resource.data) ||
+          request.resource.data.role == resource.data.role ||
+          isSuperAdmin()
+        )) ||
+        isSuperAdmin()
+      );
+      allow delete: if isSuperAdmin();
+    }
+
+    // Équipes et Canaux : accès restreint aux membres, créateurs ou SuperAdmin
+    match /teams/{teamId} {
+      allow read: if isAuthenticated() && (
+        resource.data.isPublic == true ||
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        (resource.data.members != null && request.auth.uid in resource.data.members) ||
+        isSuperAdmin()
+      );
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid || 
+        resource.data.createdBy == request.auth.uid ||
+        isSuperAdmin()
+      );
+    }
+
+    // Réunions et Événements du calendrier : restreints aux organisateurs et participants
+    match /meetings/{meetingId} {
+      allow read: if isAuthenticated() && (
+        resource.data.hostUid == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        resource.data.isPublic == true ||
+        (resource.data.participants != null && request.auth.uid in resource.data.participants) ||
+        isSuperAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.hostUid == request.auth.uid ||
+        request.resource.data.createdBy == request.auth.uid ||
+        isSuperAdmin()
+      );
+      allow update, delete: if isAuthenticated() && (
+        resource.data.hostUid == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        isSuperAdmin()
+      );
+    }
+
+    // Fichiers partagés : suppression uniquement par l'uploader ou SuperAdmin
+    match /shared_files/{fileId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (
+        request.resource.data.authorUid == request.auth.uid ||
+        request.resource.data.uploaderUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.authorUid == request.auth.uid ||
+        resource.data.uploaderUid == request.auth.uid || 
+        resource.data.ownerId == request.auth.uid ||
+        isSuperAdmin()
+      );
+    }
+
+    // Relations d'amitié (Friendships) : Deny by default, contrôles stricts des transitions
+    match /friendships/{friendshipId} {
+      allow read: if isAuthenticated() && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.receiverId == request.auth.uid ||
+        (resource.data.users != null && resource.data.users.hasAny([request.auth.uid])) ||
+        isSuperAdmin()
+      );
+
+      allow create: if isAuthenticated() &&
+        (request.resource.data.senderId == request.auth.uid || isSuperAdmin()) &&
+        request.resource.data.status == 'pending' &&
+        (request.resource.data.users == null || request.resource.data.users.hasAll([request.auth.uid]));
+
+      allow update: if isAuthenticated() &&
+        (
+          (resource.data.receiverId == request.auth.uid && (request.resource.data.status == 'accepted' || request.resource.data.status == 'declined')) ||
+          (resource.data.users != null && resource.data.users.hasAny([request.auth.uid])) ||
+          isSuperAdmin()
+        );
+
+      allow delete: if isAuthenticated() && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.receiverId == request.auth.uid ||
+        (resource.data.users != null && resource.data.users.hasAny([request.auth.uid])) ||
+        isSuperAdmin()
+      );
+    }
+
+    // Blocages d'utilisateurs (Blocks) : privés entre les parties concernées et l'admin
+    match /blocks/{blockId} {
+      allow read: if isAuthenticated() && (
+        resource.data.blockerId == request.auth.uid ||
+        resource.data.blockerUid == request.auth.uid ||
+        resource.data.blockedUserId == request.auth.uid ||
+        isSuperAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.blockerId == request.auth.uid ||
+        request.resource.data.blockerUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.blockerId == request.auth.uid ||
+        resource.data.blockerUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+    }
+
+    // Signalements (Reports) : Lecture restreinte à l'auteur du signalement ou SuperAdmin
+    match /reports/{reportId} {
+      allow create: if isAuthenticated() && (
+        request.resource.data.reporterId == request.auth.uid ||
+        request.resource.data.reporterUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+      allow read: if isAuthenticated() && (
+        resource.data.reporterId == request.auth.uid ||
+        resource.data.reporterUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // Conversations Masquées (Hidden Conversations) : strict par utilisateur
+    match /hiddenConversations/{userId}/{allPaths=**} {
+      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+    }
+
+    // =========================================================================
+    // MODULE SOCIAL RAITRA CONNECT (Actualités, Publications, Stories, Pages)
+    // =========================================================================
+
+    // Publications Sociales (Posts)
+    match /social_posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.authorUid == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.authorUid == request.auth.uid ||
+        // Autoriser la mise à jour des compteurs de réactions, commentaires et partages
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactionsCount', 'reactionsSummary', 'commentsCount', 'sharesCount']) ||
+        isSuperAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.authorUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+    }
+
+    // Réactions aux publications (Post Reactions)
+    match /social_post_reactions/{reactionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (
+        resource.data.uid == request.auth.uid ||
+        isSuperAdmin()
+      );
+    }
+
+    // Commentaires sociaux (Comments)
+    match /social_comments/{commentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.authorUid == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.authorUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.authorUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+    }
+
+    // Stories 24h
+    match /social_stories/{storyId} {
+      allow read: if isAuthenticated() && (
+        resource.data.expiresAt > request.time.toMillis() ||
+        resource.data.authorUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.authorUid == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.authorUid == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers', 'viewersCount']) ||
+        isSuperAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.authorUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+    }
+
+    // Pages Raitra Connect
+    match /social_pages/{pageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.ownerUid == request.auth.uid ||
+        (resource.data.admins != null && request.auth.uid in resource.data.admins) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followersCount', 'updatedAt']) ||
+        isSuperAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.ownerUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+    }
+
+    // Abonnés des Pages (Page Followers)
+    match /social_page_followers/{followerId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAuthenticated() && (
+        resource.data.uid == request.auth.uid ||
+        isSuperAdmin()
+      );
+    }
+
+    // Notifications Sociales
+    match /social_notifications/{notifId} {
+      allow read: if isAuthenticated() && (
+        resource.data.recipientUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.senderUid == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.recipientUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.recipientUid == request.auth.uid ||
+        isSuperAdmin()
+      );
+    }
+
+    // Interdiction stricte par défaut pour toute autre collection non déclarée
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
